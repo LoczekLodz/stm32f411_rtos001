@@ -31,7 +31,7 @@
 typedef struct
 {
 	genericTaskConfig_t		taskConfig;
-	transmitPinAM433_t		transmitPin;
+	uint32_t				*usartHandle;
 } taskConfig_t;
 
 /**
@@ -44,8 +44,7 @@ static taskConfig_t taskConfig =
 	.taskConfig.stackSize		= 128,
 	.taskConfig.taskPriority	= ULTRA_SOUND_TASK_PRIORITY,
 	.taskConfig.taskHandle		= NULL,
-	.transmitPin.gpioPin  		= 0,
-	.transmitPin.gpioPort  		= 0,
+	.usartHandle				= NULL,
 };
 
 static bufferList_t *firstNodeTransmitterAM433 = NULL;
@@ -55,7 +54,6 @@ static bufferList_t *lastNodeTransmitterAM433 	= NULL;
  * @brief Function definition
  */
 static void mainTask(void const * argument);
-static void sendData();
 /**
  * @brief Global functions body
  *
@@ -63,25 +61,19 @@ static void sendData();
 /**
  * @brief Creating Task function
  */
-result_t createTransmitterAM433DriverTask(transmitPinAM433_t transmitPin)
+result_t createTransmitterAM433DriverTask(uint32_t *usartHandle)
 {
 	result_t retVal_e = RESULT_SUCCESS;
 
 	do
 	{
 
-		if (0 != transmitPin.gpioPin && 0 != transmitPin.gpioPort)
-		{
-			taskConfig.transmitPin.gpioPin = transmitPin.gpioPin;
-			taskConfig.transmitPin.gpioPort = transmitPin.gpioPort;
-
-			HAL_GPIO_WritePin((GPIO_TypeDef *) taskConfig.transmitPin.gpioPort, taskConfig.transmitPin.gpioPin, GPIO_PIN_RESET);
-		}
-		else
+		if (NULL == usartHandle)
 		{
 			retVal_e = ERR_TRANSMITTER_AM_433_NOT_VALID_PARAMS;
 		}
 
+		taskConfig.usartHandle = usartHandle;
 		taskConfig.taskConfig.mainTask = mainTask;
 
 		osThreadDef(TransmitterAM433,
@@ -132,35 +124,12 @@ static void mainTask(void const * argument)
 	{
 		if (NULL != firstNodeTransmitterAM433->next)
 		{
-			sendData();
+			HAL_UART_Transmit((UART_HandleTypeDef *) taskConfig.usartHandle, (uint8_t *) firstNodeTransmitterAM433->next->buffer, (uint16_t) strlen((const char *)firstNodeTransmitterAM433->next->buffer), 1000);
 			if (RESULT_SUCCESS != popNodeFromBuffer(&firstNodeTransmitterAM433))
 			{
 				//break;
 			}
 		}
 		osDelay(100);
-	}
-}
-
-static void sendData()
-{
-	uint8_t i;
-	uint8_t *buf2Send = firstNodeTransmitterAM433->next->buffer;
-	while(buf2Send)
-	{
-		for (i=0;i<8; i++)
-		{
-			if (1 == (*buf2Send & (1<<i)))
-			{
-				HAL_GPIO_WritePin((GPIO_TypeDef *) taskConfig.transmitPin.gpioPort, taskConfig.transmitPin.gpioPin, GPIO_PIN_SET);
-			}
-			else
-			{
-				HAL_GPIO_WritePin((GPIO_TypeDef *) taskConfig.transmitPin.gpioPort, taskConfig.transmitPin.gpioPin, GPIO_PIN_RESET);
-			}
-			delayUs(250);
-			delayUs(250);
-		}
-		buf2Send++;
 	}
 }

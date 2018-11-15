@@ -75,6 +75,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim10;
 TIM_HandleTypeDef htim11;
 
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
@@ -98,6 +99,7 @@ static void MX_ADC1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_USART1_UART_Init(void);
 void MainProgramTask(void const * argument);
 static void MX_NVIC_Init(void);
 
@@ -154,6 +156,7 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM1_Init();
   MX_I2C1_Init();
+  MX_USART1_UART_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -302,6 +305,9 @@ static void MX_NVIC_Init(void)
   /* I2C1_ER_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(I2C1_ER_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+  /* USART1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
 /* ADC1 init function */
@@ -502,6 +508,25 @@ static void MX_TIM11_Init(void)
 
 }
 
+/* USART1 init function */
+static void MX_USART1_UART_Init(void)
+{
+
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 9600;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /* USART2 init function */
 static void MX_USART2_UART_Init(void)
 {
@@ -561,7 +586,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_9|GPIO_PIN_12, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_9, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PC0 PC1 PC2 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2;
@@ -583,8 +608,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA6 PA12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_12;
+  /*Configure GPIO pin : PA6 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
@@ -619,7 +644,7 @@ static void mainTaskLoop(void)
 	//initLcdScreen();
 
 	initUltraSoundDriver();
-	//initTransmitterAM433();
+	initTransmitterAM433();
 
 	while(1)
 	{
@@ -770,10 +795,7 @@ static void initTransmitterAM433(void)
 			0x33,
 	};
 
-	transmitPinAM433_t transmitPin;
-	transmitPin.gpioPin = GPIO_PIN_12;
-	transmitPin.gpioPort = (uint32_t) GPIOA;
-	createTransmitterAM433DriverTask(transmitPin);
+	createTransmitterAM433DriverTask((uint32_t *) &huart1);
 
 	transmitAM433Message(data2Send, 4);
 }

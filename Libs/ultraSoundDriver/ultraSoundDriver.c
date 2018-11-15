@@ -29,7 +29,6 @@ typedef struct
 	triggerUltraSoundMeasure_t			trgPin;
 	uint32_t							distance;
 	uint8_t								cDistance[8];
-	osSemaphoreId						distnaceMeasuredSemaphore;
 }taskConfig_t;
 
 /**
@@ -89,9 +88,6 @@ result_t createUltraSoundTask(uint32_t *timerHandle, triggerUltraSoundMeasure_t 
 
 		taskConfig.timerHandler = timerHandle;
 		taskConfig.taskConfig.mainTask = mainTask;
-
-		osSemaphoreDef(distnaceMeasuredSemaphore);
-		taskConfig.distnaceMeasuredSemaphore = osSemaphoreCreate(osSemaphore(distnaceMeasuredSemaphore), 1);
 
 		osThreadDef(UltraSoundTask,
 					taskConfig.taskConfig.mainTask,

@@ -10,13 +10,7 @@
 
 #include "resultCodes.h"
 
-typedef struct
-{
-	uint32_t gpioPort;
-	uint32_t gpioPin;
-} transmitPinAM433_t;
-
-result_t createTransmitterAM433DriverTask(transmitPinAM433_t transmitPin);
+result_t createTransmitterAM433DriverTask(uint32_t *usartHandle);
 result_t transmitAM433Message(const uint8_t *data, uint8_t size);
 
 #endif /* INC_TRANSMITTERAM433_H_ */
