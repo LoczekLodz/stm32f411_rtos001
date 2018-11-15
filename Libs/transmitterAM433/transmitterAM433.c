@@ -48,8 +48,8 @@ static taskConfig_t taskConfig =
 	.transmitPin.gpioPort  		= 0,
 };
 
-bufferList_t *firstNodeTransmitterAM433 = NULL;
-bufferList_t *lastNodeTransmitterAM433 	= NULL;
+static bufferList_t *firstNodeTransmitterAM433 = NULL;
+static bufferList_t *lastNodeTransmitterAM433 	= NULL;
 
 /**
  * @brief Function definition
@@ -96,6 +96,15 @@ result_t createTransmitterAM433DriverTask(transmitPinAM433_t transmitPin)
 		{
 			retVal_e = ERR_TRANSMITTER_AM_433_TASK_CRESTION_ERROR;
 		}
+
+		if (NULL == firstNodeTransmitterAM433)
+		{
+			firstNodeTransmitterAM433 = (bufferList_t *) calloc(0, sizeof(bufferList_t));
+			firstNodeTransmitterAM433->buffer = NULL;
+			firstNodeTransmitterAM433->next = NULL;
+			lastNodeTransmitterAM433 = firstNodeTransmitterAM433;
+		}
+
 	} while(0);
 
 	return retVal_e;
@@ -109,7 +118,7 @@ result_t transmitAM433Message(const uint8_t *data, uint8_t size)
 
 	memcpy(buff, data, size);
 
-	pushNode2Buffer((uint8_t *) buff, firstNodeTransmitterAM433, lastNodeTransmitterAM433);
+	pushNode2Buffer((uint8_t *) buff, &firstNodeTransmitterAM433, &lastNodeTransmitterAM433);
 
 	return retVal_e;
 }
@@ -121,10 +130,10 @@ static void mainTask(void const * argument)
 {
 	while(1)
 	{
-		if (NULL != firstNodeTransmitterAM433)
+		if (NULL != firstNodeTransmitterAM433->next)
 		{
 			sendData();
-			if (RESULT_SUCCESS != popNodeFromBuffer(firstNodeTransmitterAM433))
+			if (RESULT_SUCCESS != popNodeFromBuffer(&firstNodeTransmitterAM433))
 			{
 				//break;
 			}
@@ -136,12 +145,12 @@ static void mainTask(void const * argument)
 static void sendData()
 {
 	uint8_t i;
-
-	while(firstNodeTransmitterAM433->buffer)
+	uint8_t *buf2Send = firstNodeTransmitterAM433->next->buffer;
+	while(buf2Send)
 	{
 		for (i=0;i<8; i++)
 		{
-			if (1 == (*(firstNodeTransmitterAM433->buffer) & (1<<i)))
+			if (1 == (*buf2Send & (1<<i)))
 			{
 				HAL_GPIO_WritePin((GPIO_TypeDef *) taskConfig.transmitPin.gpioPort, taskConfig.transmitPin.gpioPin, GPIO_PIN_SET);
 			}
@@ -149,8 +158,9 @@ static void sendData()
 			{
 				HAL_GPIO_WritePin((GPIO_TypeDef *) taskConfig.transmitPin.gpioPort, taskConfig.transmitPin.gpioPin, GPIO_PIN_RESET);
 			}
-			osDelay(1);
+			delayUs(250);
+			delayUs(250);
 		}
-		firstNodeTransmitterAM433->buffer++;
+		buf2Send++;
 	}
 }

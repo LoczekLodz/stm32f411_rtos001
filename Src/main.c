@@ -618,7 +618,7 @@ static void mainTaskLoop(void)
 
 	//initLcdScreen();
 
-	//initUltraSoundDriver();
+	initUltraSoundDriver();
 	//initTransmitterAM433();
 
 	while(1)

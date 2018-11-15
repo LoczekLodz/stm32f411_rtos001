@@ -49,6 +49,8 @@ static taskConfig_t taskConfig =
 	.cDistance					= "",
 };
 
+static uint8_t measurementDoneCallback = 0;
+
 /**
  * @brief Function definition
  */
@@ -112,10 +114,7 @@ result_t measurementDone()
 {
 	result_t retVal_e = RESULT_SUCCESS;
 
-	if(!osSemaphoreRelease(taskConfig.distnaceMeasuredSemaphore))
-	{
-		retVal_e = ERR_ULTRA_SOUND_SEM_NOT_RELEASED;
-	}
+	measurementDoneCallback = 1;
 
 	return retVal_e;
 }
@@ -152,7 +151,11 @@ static void mainTask(void const * argument)
 	{
 		triggerMeasurement();
 
-		osSemaphoreWait(taskConfig.distnaceMeasuredSemaphore, 1000);
+		while(!measurementDoneCallback)
+		{
+			osDelay(1);
+		}
+		measurementDoneCallback = 0;
 		taskConfig.distance = (HAL_TIM_ReadCapturedValue((TIM_HandleTypeDef *) taskConfig.timerHandler, TIM_CHANNEL_2) * 34) / 200;
 
 		displayLog();

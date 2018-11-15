@@ -17,7 +17,7 @@ typedef struct bufferList
 }bufferList_t;
 
 
-result_t pushNode2Buffer(uint8_t *buffer, bufferList_t *firstNode, bufferList_t *lastNode);
-result_t popNodeFromBuffer(bufferList_t *firstNode);
+result_t pushNode2Buffer(uint8_t *buffer, bufferList_t **firstNode, bufferList_t **lastNode);
+result_t popNodeFromBuffer(bufferList_t **firstNode);
 
 #endif /* INC_ONEDIRLIST_H_ */

@@ -89,6 +89,15 @@ result_t createLoggerTask(uint32_t *usartHandle)
 		{
 			retVal_e = ERR_LOGGER_TASK_CRESTION_ERROR;
 		}
+
+	    if (NULL == firstNode)
+	    {
+	        firstNode = (bufferList_t *) calloc(0, sizeof(bufferList_t));
+	        firstNode->buffer = NULL;
+	        firstNode->next = NULL;
+	        lastNode = firstNode;
+	    }
+
 	} while(0);
 
 	return retVal_e;
@@ -98,11 +107,11 @@ static void mainTask(void const * argument)
 {
 	while(1)
 	{
-		if (NULL != firstNode)
+		if (NULL != firstNode->next)
 		{
 
-			HAL_UART_Transmit((UART_HandleTypeDef *) taskConfig.usartHandle, (uint8_t *) firstNode->buffer, (uint16_t) strlen((const char *)firstNode->buffer), 1000);
-			if (RESULT_SUCCESS != popNodeFromBuffer(firstNode))
+			HAL_UART_Transmit((UART_HandleTypeDef *) taskConfig.usartHandle, (uint8_t *) firstNode->next->buffer, (uint16_t) strlen((const char *)firstNode->next->buffer), 1000);
+			if (RESULT_SUCCESS != popNodeFromBuffer(&firstNode))
 			{
 				//break;
 			}
@@ -151,7 +160,7 @@ result_t logMessage(logSeverity_e severityLevel, const uint8_t *format)
 	memcpy(destBuffer+headerSize, format, buffSize);
 	memcpy(destBuffer+buffSize+headerSize, "\n\0", 2);
 
-	pushNode2Buffer((uint8_t *) destBuffer, firstNode, lastNode);
+	pushNode2Buffer((uint8_t *) destBuffer, &firstNode, &lastNode);
 
 	return retVal_e;
 }
