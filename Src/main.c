@@ -57,6 +57,7 @@
 #include "joystickDriver.h"
 #include "lcd_Nokia5110_Driver.h"
 #include "transmitterAM433.h"
+#include "eeprom24Cx.h"
 #include <stdlib.h>
 #include <string.h>
 /* USER CODE END Includes */
@@ -112,6 +113,7 @@ static void initJoystick(void);
 //static void initLcdScreen(void);
 static void initUltraSoundDriver(void);
 static void initTransmitterAM433(void);
+static void initEeptom24CxDriver(void);
 
 static void changeLedConfig(uint8_t modeDecode);
 static void decodeNumber4Led(uint8_t device, uint8_t *numTable);
@@ -644,7 +646,8 @@ static void mainTaskLoop(void)
 	//initLcdScreen();
 
 	initUltraSoundDriver();
-	initTransmitterAM433();
+	//initTransmitterAM433();
+	initEeptom24CxDriver();
 
 	while(1)
 	{
@@ -668,6 +671,12 @@ static void mainTaskLoop(void)
 			changeLedConfig(1);
 			getDistanceTextTrimmed(data2Display);
 			decodeNumber4Led(0, data2Display);
+		}
+
+		{
+			uint8_t		buff[40];
+			readData(0x00, buff, 40);
+			logMessage(LOG_INF, buff);
 		}
 
 		dispMode++;
@@ -798,6 +807,11 @@ static void initTransmitterAM433(void)
 	createTransmitterAM433DriverTask((uint32_t *) &huart1);
 
 	transmitAM433Message(data2Send, 4);
+}
+
+static void initEeptom24CxDriver()
+{
+	createEeprom24CxDriverTask((uint32_t *) &hi2c1, 0xA0);
 }
 
 /*****************************************************************************/
