@@ -693,10 +693,10 @@ static void initLogger(void)
 {
 	createLoggerTask((uint32_t *) &huart2);
 
-//	logMessage(LOG_DEB, (uint8_t *) "Test - wpisanie do bufura");
-//	logMessage(LOG_ERR, (uint8_t *) "Test - brak obslugi bledow trza dodac");
-//	logMessage(LOG_DEB, (uint8_t *) "Test - mamy to po raz 3");
-//	logMessage(LOG_DEB, (uint8_t *) "Test - mamy to po raz 3 uart port %d", &huart2.Instance);
+	logMessage(LOG_DEB, (uint8_t *) "Test - wpisanie do bufura");
+	logMessage(LOG_ERR, (uint8_t *) "Test - brak obslugi bledow trza dodac");
+	logMessage(LOG_DEB, (uint8_t *) "Test - mamy to po raz 3");
+	logMessage(LOG_DEB, (uint8_t *) "Test - mamy to po raz 3 uart port");
 }
 
 static void initLedDriver(void)

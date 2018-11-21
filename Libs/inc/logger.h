@@ -22,6 +22,6 @@ typedef uint8_t logSeverity_e;
  */
 result_t createLoggerTask(uint32_t *usartHandle);
 
-result_t logMessage(logSeverity_e severityLevel, const uint8_t *format);
+result_t logMessage(logSeverity_e severityLevel, const uint8_t *format, ...);
 
 #endif /* LOGGER_LOGGER_H_ */

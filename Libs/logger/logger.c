@@ -11,6 +11,8 @@
 #include "rtosConfig.h"
 #include "oneDirList.h"
 #include "main.h"
+#include <stdarg.h>
+#include <stdio.h>
 
 #if defined  __STM32F4_FAMILY__
 	#include "stm32f4xx_hal.h"
@@ -22,6 +24,10 @@
 
 #define MAX_LENGTH_MSG_HEADER			16
 #define MAX_LENGTH_MSG_WITHOUT_HEADER	240
+#define LOG_HEAD_INFO_LENGTH			((uint16_t) 9)
+#define LOG_HEAD_DEBUG_LENGTH			((uint16_t) 10)
+#define LOG_HEAD_WARNING_LENGTH			((uint16_t) 12)
+#define LOG_HEAD_ERROR_LENGTH			((uint16_t) 10)
 
 #define header(str) "[" #str "] | "
 
@@ -50,6 +56,8 @@ static taskConfig_t taskConfig =
 
 static bufferList_t *firstNode = NULL;
 static bufferList_t *lastNode = NULL;
+
+static uint8_t buffHeader[MAX_LENGTH_MSG_HEADER];
 
 /**
  * @brief Function definition
@@ -90,14 +98,6 @@ result_t createLoggerTask(uint32_t *usartHandle)
 			retVal_e = ERR_LOGGER_TASK_CRESTION_ERROR;
 		}
 
-	    if (NULL == firstNode)
-	    {
-	        firstNode = (bufferList_t *) calloc(0, sizeof(bufferList_t));
-	        firstNode->buffer = NULL;
-	        firstNode->next = NULL;
-	        lastNode = firstNode;
-	    }
-
 	} while(0);
 
 	return retVal_e;
@@ -107,10 +107,10 @@ static void mainTask(void const * argument)
 {
 	while(1)
 	{
-		if (NULL != firstNode->next)
+		if (NULL != firstNode)
 		{
 
-			HAL_UART_Transmit((UART_HandleTypeDef *) taskConfig.usartHandle, (uint8_t *) firstNode->next->buffer, (uint16_t) strlen((const char *)firstNode->next->buffer), 1000);
+			HAL_UART_Transmit((UART_HandleTypeDef *) taskConfig.usartHandle, (uint8_t *) firstNode->buffer, (uint16_t) strlen((const char *)firstNode->buffer), 1000);
 			if (RESULT_SUCCESS != popNodeFromBuffer(&firstNode))
 			{
 				//break;
@@ -121,46 +121,48 @@ static void mainTask(void const * argument)
 	}
 }
 
-result_t logMessage(logSeverity_e severityLevel, const uint8_t *format)
+result_t logMessage(logSeverity_e severityLevel, const uint8_t *format, ...)
 {
 	result_t retVal_e = RESULT_SUCCESS;
 
-	uint8_t *buffHeader = (uint8_t *) calloc(MAX_LENGTH_MSG_HEADER, sizeof(uint8_t));
-	uint8_t *destBuffer;
-
+	uint8_t *destBuffer = NULL;
+	uint16_t buffSize = strlen((char *) format);
 	uint16_t headerSize = 0;
-	uint16_t buffSize = 0;
-	//va_list args;
+	uint16_t overalBuffSize = 18 + buffSize;
+
+	memset(buffHeader, 0, MAX_LENGTH_MSG_HEADER);
 
 	if (LOG_INF == severityLevel)
 	{
-		buffHeader = (uint8_t *) header(INFO);
+		memcpy(buffHeader, (uint8_t *)"[INFO] | ", LOG_HEAD_INFO_LENGTH);
 	}
 	else if (LOG_DEB == severityLevel)
 	{
-		buffHeader = (uint8_t *) header(DEBUG);
+		memcpy(buffHeader, (uint8_t *)"[DEBUG] | ", LOG_HEAD_DEBUG_LENGTH);
 	}
 	else if (LOG_WARN == severityLevel)
 	{
-		buffHeader = (uint8_t *) header(WARNING);
+		memcpy(buffHeader, (uint8_t *)"[WARNING] | ", LOG_HEAD_WARNING_LENGTH);
 	}
 	else if (LOG_ERR == severityLevel)
 	{
-		buffHeader = (uint8_t *) header(ERROR);
+		memcpy(buffHeader, (uint8_t *)"[ERROR] | ", LOG_HEAD_ERROR_LENGTH);
 	}
 	headerSize = strlen((char *) buffHeader);
 
-	//va_start (args, format);
-	//vsnprintf ((char *) (buffer), MAX_LENGTH_MSG_WITHOUT_HEADER, (const char *) format, args);
-	//va_end (args);
-	buffSize = strlen((char *) format);
-
-	destBuffer = (uint8_t *) malloc(buffSize + headerSize + 2);
+	destBuffer = (uint8_t *) malloc(overalBuffSize);
 	memcpy(destBuffer, buffHeader, headerSize);
-	memcpy(destBuffer+headerSize, format, buffSize);
-	memcpy(destBuffer+buffSize+headerSize, "\n\0", 2);
+	memcpy(destBuffer + headerSize, format, buffSize);
+	memcpy(destBuffer + headerSize + buffSize, "\n\0", 2);
+
+	if (NULL == firstNode)
+	{
+		firstNode = (bufferList_t *) calloc(0, sizeof(bufferList_t));
+		firstNode->buffer = NULL;
+		firstNode->next = NULL;
+		lastNode = firstNode;
+	}
 
 	pushNode2Buffer((uint8_t *) destBuffer, &firstNode, &lastNode);
-
 	return retVal_e;
 }

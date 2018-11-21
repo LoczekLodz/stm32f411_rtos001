@@ -102,7 +102,7 @@ result_t createEeprom24CxDriverTask(uint32_t *i2cHandle, uint8_t address)
 result_t readData(uint16_t address, uint8_t *readData, uint8_t readSize)
 {
 	result_t	retVal_e = RESULT_SUCCESS;
-	uint8_t		*buff;
+	uint8_t		buff[readSize];
 	do
 	{
 		if (0 != taskConfig.isBusy)
@@ -112,13 +112,14 @@ result_t readData(uint16_t address, uint8_t *readData, uint8_t readSize)
 		}
 
 		taskConfig.isBusy = 1;
-		buff = (uint8_t *) calloc(readSize, sizeof(uint8_t));
+		//buff = (uint8_t *) calloc(readSize, sizeof(uint8_t));
 
-		HAL_I2C_Master_Transmit((I2C_HandleTypeDef *) taskConfig.i2cHandle, taskConfig.i2cAddress, (uint8_t *) address, 2, 100);
+		HAL_I2C_Master_Transmit((I2C_HandleTypeDef *) taskConfig.i2cHandle, taskConfig.i2cAddress, (uint8_t *) &address, 2, 100);
 
 		HAL_I2C_Master_Receive((I2C_HandleTypeDef *) taskConfig.i2cHandle, taskConfig.i2cAddress, buff, readSize, 1000);
 
 		memcpy(readData, buff, readSize);
+
 
 		//HAL_I2C_Master_Receive_DMA((I2C_HandleTypeDef *) taskConfig.i2cHandle, taskConfig.i2cAddress, &buffRec, 20);
 		taskConfig.isBusy = 0;
